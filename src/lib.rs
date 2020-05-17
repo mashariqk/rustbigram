@@ -24,20 +24,18 @@ pub fn run(config: Config) -> Result<(), Box<Error>> {
             process::exit(9);
         });
 
-        println!("Line read is \n {}\n", l);
-
         let x: Vec<String> = l
             .split_whitespace()
             .map(|s| s.to_ascii_lowercase())
             .collect();
         for (index, text) in x.iter().enumerate() {
-            println!(
-                "Original word is -->{}<--\nCleansed word is {:?}\n",
-                text,
-                cleanse_word(text, &re)
-            );
+            match cleanse_word(text, &re) {
+                Some(word) => calculate_counts(&mut counter_map, &mut rolling_vector, word),
+                None => {}
+            }
         }
     }
+    println!("Final counts are {:?}", counter_map);
     Ok(())
 }
 
@@ -79,21 +77,41 @@ fn cleanse_word<'a>(text: &'a str, re: &'a Regex) -> Option<&'a str> {
     Some(text)
 }
 
-fn calculate_counts(counter_map: &mut HashMap<String, u32>, rolling_vector: &mut Vec<String>) {
+fn calculate_counts(
+    counter_map: &mut HashMap<String, u32>,
+    rolling_vector: &mut Vec<String>,
+    word: &str,
+) {
+    if rolling_vector.len() < 2 {
+        rolling_vector.push(word.to_string());
+    }
     if rolling_vector.len() == 2 {
         let key = get_key_from_vec(&rolling_vector);
+        println!("key is {}", &key);
         if counter_map.contains_key(&key) {
             let count = counter_map.get(&key).unwrap();
-            counter_map.insert(key, (count + 1))
+            println!(
+                "Key found in map, incrementing count of {} to {}",
+                &key,
+                (count + 1)
+            );
+            counter_map.insert(key, (count + 1));
+        } else {
+            println!("Key NOT found in map, inserting  {}", key);
+            counter_map.insert(key, 1);
         }
+        println!("Rolling vec before reset {:?}", rolling_vector);
+        //re-initialize the vector now with the second word
+        *rolling_vector = vec![rolling_vector.get(1).unwrap().to_string()];
+        println!("Rolling vec after reset: {:?}", rolling_vector);
     }
 }
 
 fn get_key_from_vec(rolling_vector: &Vec<String>) -> String {
     let mut key = String::new();
-    key.push(rolling_vector.get(0).unwrap().parse().unwrap());
+    key.push_str(rolling_vector.get(0).unwrap());
     key.push_str(" ");
-    key.push(rolling_vector.get(1).unwrap().parse().unwrap());
+    key.push_str(rolling_vector.get(1).unwrap());
     key
 }
 
