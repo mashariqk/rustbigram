@@ -144,3 +144,8 @@ impl Config {
         self.filename.as_ref()
     }
 }
+
+#[cfg(test)]
+mod tests{
+
+}
