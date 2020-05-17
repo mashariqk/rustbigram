@@ -242,6 +242,20 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_text_into_vec_with_all_punctuations_and_mixedcase_and_extra_spaces_and_non_ascii()
+    {
+        let line =
+            "THE ૱﷼₢quICK₱€₴ brOWn🤯🤯🤯         FOX AND    ???...;;;;   ThE    ₱€₴૱﷼₢;;../////         QuiCK BROWN \"\"\"🥰🥰🥰haRE\"\"..😍😍😍...??????";
+        let v = parse_text_into_vec(line);
+        assert!(v.contains(&"quick".to_string()));
+        assert!(!v.contains(&"THE".to_string()));
+        assert_eq!(v.get(8), Some(&"hare".to_string()));
+        assert_eq!(v.get(1), Some(&"quick".to_string()));
+        assert_eq!(v.get(2), Some(&"brown".to_string()));
+        assert_eq!(v.len(), 9);
+    }
+
+    #[test]
     fn test_cleanse_word_with_no_punctuations() {
         let sample_text = "fox";
         assert_eq!(cleanse_word(&sample_text, &get_regex()), Some("fox"));
