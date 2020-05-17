@@ -7,7 +7,6 @@ use std::path::Path;
 use std::process;
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-
     let mut counter_map: HashMap<String, u32> = HashMap::new();
 
     let mut rolling_vector: Vec<String> = vec![];
@@ -25,32 +24,30 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
             process::exit(9);
         });
 
-        let line_word_vec: Vec<String> = line
-            .split_whitespace()
-            .map(|s| s.to_ascii_lowercase())
-            .collect();
+        let line_word_vec = parse_text_into_vec(&line);
+
         for text in line_word_vec.iter() {
-            if let Some(word) = cleanse_word(text, &get_regex()) {
-                calculate_counts(
-                    &mut counter_map,
-                    &mut rolling_vector,
-                    word,
-                    &mut key_tracker,
-                )
-            }
+            calculate_counts(
+                &mut counter_map,
+                &mut rolling_vector,
+                text,
+                &mut key_tracker,
+            );
         }
     }
+
     for key in key_tracker {
         println!("{}:{}", key, counter_map.get(&key).unwrap());
     }
+
     Ok(())
 }
 
-fn get_regex() -> Regex{
+fn get_regex() -> Regex {
     Regex::new(r"[^a-z0-9 ]+").unwrap()
 }
 
-fn cleanse_word<'a>(text: &'a str, re: & Regex) -> Option<&'a str> {
+fn cleanse_word<'a>(text: &'a str, re: &Regex) -> Option<&'a str> {
     if re.is_match(text) {
         let start_idx = re.find(text).unwrap().start();
         let end_idx = re.find(text).unwrap().end();
@@ -86,6 +83,17 @@ fn cleanse_word<'a>(text: &'a str, re: & Regex) -> Option<&'a str> {
     }
     //The word is clean already, return as is
     Some(text)
+}
+
+fn parse_text_into_vec(line: &str) -> Vec<String> {
+    line.split_whitespace()
+        .filter(|s| cleanse_word(s.to_ascii_lowercase().as_str(), &get_regex()).is_some())
+        .map(|s| {
+            cleanse_word(s.to_ascii_lowercase().as_str(), &get_regex())
+                .unwrap()
+                .to_string()
+        })
+        .collect()
 }
 
 #[allow(mutable_borrow_reservation_conflict)]
@@ -148,81 +156,125 @@ impl Config {
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use super::*;
 
     #[test]
-    fn test_cleanse_word_with_no_punctuations(){
+    fn test_cleanse_word_with_no_punctuations() {
         let sample_text = "fox";
-        assert_eq!(cleanse_word(&sample_text,&get_regex()),Some("fox"));
+        assert_eq!(cleanse_word(&sample_text, &get_regex()), Some("fox"));
     }
 
     #[test]
-    fn test_cleanse_word_with_punctuations_at_end(){
+    fn test_cleanse_word_with_punctuations_at_end() {
         let sample_text = "fox's";
-        assert_eq!(cleanse_word(&sample_text,&get_regex()),Some("fox"));
+        assert_eq!(cleanse_word(&sample_text, &get_regex()), Some("fox"));
     }
 
     #[test]
-    fn test_cleanse_word_with_punctuations_at_start(){
+    fn test_cleanse_word_with_punctuations_at_start() {
         let sample_text = "...???...,,,,```fox";
-        assert_eq!(cleanse_word(&sample_text,&get_regex()),Some("fox"));
+        assert_eq!(cleanse_word(&sample_text, &get_regex()), Some("fox"));
     }
 
     #[test]
-    fn test_cleanse_word_with_punctuations_both_ends(){
+    fn test_cleanse_word_with_punctuations_both_ends() {
         let sample_text = "...???...,,,,```fox...!!!!!";
-        assert_eq!(cleanse_word(&sample_text,&get_regex()),Some("fox"));
+        assert_eq!(cleanse_word(&sample_text, &get_regex()), Some("fox"));
     }
 
     #[test]
-    fn test_cleanse_word_with_all_punctuations(){
+    fn test_cleanse_word_with_all_punctuations() {
         let sample_text = "...???...,,,,```...!!!!!";
-        assert_eq!(cleanse_word(&sample_text,&get_regex()),None);
+        assert_eq!(cleanse_word(&sample_text, &get_regex()), None);
     }
 
     #[test]
-    fn test_cleanse_word_with_emojis(){
+    fn test_cleanse_word_with_emojis() {
         let sample_text = "...???...,,,,```🥰😍fox...!!!!!";
-        assert_eq!(cleanse_word(&sample_text,&get_regex()),Some("fox"));
+        assert_eq!(cleanse_word(&sample_text, &get_regex()), Some("fox"));
     }
 
     #[test]
-    fn test_get_key_from_vec(){
-        let vec:Vec<String> = vec!["key1".to_string(),"key2".to_string()];
-        assert_eq!(get_key_from_vec(&vec),String::from("key1 key2"));
+    fn test_get_key_from_vec() {
+        let vec: Vec<String> = vec!["key1".to_string(), "key2".to_string()];
+        assert_eq!(get_key_from_vec(&vec), String::from("key1 key2"));
     }
 
     #[test]
     #[should_panic]
-    fn test_get_key_from_vec_with_bad_vector(){
-        let vec:Vec<String> = vec![];
+    fn test_get_key_from_vec_with_bad_vector() {
+        let vec: Vec<String> = vec![];
         get_key_from_vec(&vec);
     }
 
     #[test]
-    fn test_calculate_counts(){
-        let mut counter_map:HashMap<String, u32> = HashMap::new();
-        let mut rolling_vector:Vec<String> = Vec::new();
-        let mut key_tracker:Vec<String> = Vec::new();
+    fn test_calculate_counts() {
+        let mut counter_map: HashMap<String, u32> = HashMap::new();
+        let mut rolling_vector: Vec<String> = Vec::new();
+        let mut key_tracker: Vec<String> = Vec::new();
 
-        calculate_counts(&mut counter_map,&mut rolling_vector,"the",&mut key_tracker);
-        calculate_counts(&mut counter_map,&mut rolling_vector,"quick",&mut key_tracker);
-        calculate_counts(&mut counter_map,&mut rolling_vector,"brown",&mut key_tracker);
-        calculate_counts(&mut counter_map,&mut rolling_vector,"fox",&mut key_tracker);
-        calculate_counts(&mut counter_map,&mut rolling_vector,"and",&mut key_tracker);
-        calculate_counts(&mut counter_map,&mut rolling_vector,"the",&mut key_tracker);
-        calculate_counts(&mut counter_map,&mut rolling_vector,"quick",&mut key_tracker);
-        calculate_counts(&mut counter_map,&mut rolling_vector,"blue",&mut key_tracker);
-        calculate_counts(&mut counter_map,&mut rolling_vector,"hare",&mut key_tracker);
+        calculate_counts(
+            &mut counter_map,
+            &mut rolling_vector,
+            "the",
+            &mut key_tracker,
+        );
+        calculate_counts(
+            &mut counter_map,
+            &mut rolling_vector,
+            "quick",
+            &mut key_tracker,
+        );
+        calculate_counts(
+            &mut counter_map,
+            &mut rolling_vector,
+            "brown",
+            &mut key_tracker,
+        );
+        calculate_counts(
+            &mut counter_map,
+            &mut rolling_vector,
+            "fox",
+            &mut key_tracker,
+        );
+        calculate_counts(
+            &mut counter_map,
+            &mut rolling_vector,
+            "and",
+            &mut key_tracker,
+        );
+        calculate_counts(
+            &mut counter_map,
+            &mut rolling_vector,
+            "the",
+            &mut key_tracker,
+        );
+        calculate_counts(
+            &mut counter_map,
+            &mut rolling_vector,
+            "quick",
+            &mut key_tracker,
+        );
+        calculate_counts(
+            &mut counter_map,
+            &mut rolling_vector,
+            "blue",
+            &mut key_tracker,
+        );
+        calculate_counts(
+            &mut counter_map,
+            &mut rolling_vector,
+            "hare",
+            &mut key_tracker,
+        );
 
-        assert_eq!(*counter_map.get("the quick").unwrap(),2 as u32);
-        assert_eq!(*counter_map.get("quick blue").unwrap(),1 as u32);
-        assert_eq!(counter_map.contains_key("hare the"),false);
+        assert_eq!(*counter_map.get("the quick").unwrap(), 2 as u32);
+        assert_eq!(*counter_map.get("quick blue").unwrap(), 1 as u32);
+        assert_eq!(counter_map.contains_key("hare the"), false);
 
-        assert_eq!(key_tracker.len(),7);
-        assert_eq!(key_tracker.get(0),Some(&"the quick".to_string()));
-        assert_eq!(key_tracker.get(6),Some(&"blue hare".to_string()))
+        assert_eq!(key_tracker.len(), 7);
+        assert_eq!(key_tracker.get(0), Some(&"the quick".to_string()));
+        assert_eq!(key_tracker.get(6), Some(&"blue hare".to_string()))
     }
-
 }
