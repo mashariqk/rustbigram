@@ -48,7 +48,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn cleanse_word<'a>(text: &'a str, re: &'a Regex) -> Option<&'a str> {
+fn cleanse_word<'a>(text: &'a str, re: & Regex) -> Option<&'a str> {
     if re.is_match(text) {
         let start_idx = re.find(text).unwrap().start();
         let end_idx = re.find(text).unwrap().end();

@@ -1,4 +1,4 @@
-use bigram1::{run, Config};
+use bigram::{run, Config};
 use std::{env, process};
 
 fn main() {
