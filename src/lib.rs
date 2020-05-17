@@ -47,6 +47,17 @@ fn get_regex() -> Regex {
     Regex::new(r"[^a-z0-9 ]+").unwrap()
 }
 
+fn parse_text_into_vec(line: &str) -> Vec<String> {
+    line.split_whitespace()
+        .filter(|s| cleanse_word(s.to_ascii_lowercase().as_str(), &get_regex()).is_some())
+        .map(|s| {
+            cleanse_word(s.to_ascii_lowercase().as_str(), &get_regex())
+                .unwrap()
+                .to_string()
+        })
+        .collect()
+}
+
 fn cleanse_word<'a>(text: &'a str, re: &Regex) -> Option<&'a str> {
     if re.is_match(text) {
         let start_idx = re.find(text).unwrap().start();
@@ -83,17 +94,6 @@ fn cleanse_word<'a>(text: &'a str, re: &Regex) -> Option<&'a str> {
     }
     //The word is clean already, return as is
     Some(text)
-}
-
-fn parse_text_into_vec(line: &str) -> Vec<String> {
-    line.split_whitespace()
-        .filter(|s| cleanse_word(s.to_ascii_lowercase().as_str(), &get_regex()).is_some())
-        .map(|s| {
-            cleanse_word(s.to_ascii_lowercase().as_str(), &get_regex())
-                .unwrap()
-                .to_string()
-        })
-        .collect()
 }
 
 #[allow(mutable_borrow_reservation_conflict)]
@@ -158,6 +158,83 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_parse_text_into_vec_with_no_punctuations_and_all_uppercase() {
+        let line = "THE QUICK BROWN FOX AND THE QUICK BROWN HARE";
+        let v = parse_text_into_vec(line);
+        assert!(v.contains(&"quick".to_string()));
+        assert!(!v.contains(&"THE".to_string()));
+        assert_eq!(v.len(), 9);
+    }
+
+    #[test]
+    fn test_parse_text_into_vec_with_no_punctuations_and_mixedcase() {
+        let line = "THE quICK brOWn FOX AND ThE QuiCK BROWN haRE";
+        let v = parse_text_into_vec(line);
+        assert!(v.contains(&"quick".to_string()));
+        assert!(!v.contains(&"THE".to_string()));
+        assert_eq!(v.len(), 9);
+    }
+
+    #[test]
+    fn test_parse_text_into_vec_with_no_punctuations_and_mixedcase_and_extra_spaces() {
+        let line = "THE quICK brOWn             FOX AND      ThE             QuiCK BROWN haRE";
+        let v = parse_text_into_vec(line);
+        assert!(v.contains(&"quick".to_string()));
+        assert!(!v.contains(&"THE".to_string()));
+        assert_eq!(v.get(8), Some(&"hare".to_string()));
+        assert_eq!(v.len(), 9);
+    }
+
+    #[test]
+    fn test_parse_text_into_vec_with_punctuations_at_end_and_mixedcase_and_extra_spaces() {
+        let line = "THE quICK's brOWn'ss             FOX...??? AND      ThE             QuiCK BROWN haRE'ssssss";
+        let v = parse_text_into_vec(line);
+        assert!(v.contains(&"quick".to_string()));
+        assert!(!v.contains(&"THE".to_string()));
+        assert_eq!(v.get(8), Some(&"hare".to_string()));
+        assert_eq!(v.len(), 9);
+    }
+
+    #[test]
+    fn test_parse_text_into_vec_with_punctuations_at_start_and_mixedcase_and_extra_spaces() {
+        let line =
+            "THE .......quICK brOWn         FOX AND      ThE             QuiCK BROWN \"\"\"haRE";
+        let v = parse_text_into_vec(line);
+        assert!(v.contains(&"quick".to_string()));
+        assert!(!v.contains(&"THE".to_string()));
+        assert_eq!(v.get(8), Some(&"hare".to_string()));
+        assert_eq!(v.get(1), Some(&"quick".to_string()));
+        assert_eq!(v.len(), 9);
+    }
+
+    #[test]
+    fn test_parse_text_into_vec_with_enclosing_punctuations_and_mixedcase_and_extra_spaces() {
+        let line =
+            "THE .......quICK!!!!! .....brOWn'ssss         FOX AND      ThE             QuiCK BROWN \"\"\"haRE\"\".....??????";
+        let v = parse_text_into_vec(line);
+        assert!(v.contains(&"quick".to_string()));
+        assert!(!v.contains(&"THE".to_string()));
+        assert_eq!(v.get(8), Some(&"hare".to_string()));
+        assert_eq!(v.get(1), Some(&"quick".to_string()));
+        assert_eq!(v.get(2), Some(&"brown".to_string()));
+        assert_eq!(v.len(), 9);
+    }
+
+    #[test]
+    fn test_parse_text_into_vec_with_enclosing_punctuations_and_mixedcase_and_extra_spaces_and_non_ascii(
+    ) {
+        let line =
+            "THE ૱﷼₢quICK₱€₴ brOWn🤯🤯🤯         FOX AND      ThE             QuiCK BROWN \"\"\"🥰🥰🥰haRE\"\"..😍😍😍...??????";
+        let v = parse_text_into_vec(line);
+        assert!(v.contains(&"quick".to_string()));
+        assert!(!v.contains(&"THE".to_string()));
+        assert_eq!(v.get(8), Some(&"hare".to_string()));
+        assert_eq!(v.get(1), Some(&"quick".to_string()));
+        assert_eq!(v.get(2), Some(&"brown".to_string()));
+        assert_eq!(v.len(), 9);
+    }
 
     #[test]
     fn test_cleanse_word_with_no_punctuations() {
