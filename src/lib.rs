@@ -37,7 +37,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     }
 
     for key in key_tracker {
-        println!("{}:{}", key, counter_map.get(&key).unwrap());
+        println!("•\t\"{}\" {}", key, counter_map.get(&key).unwrap());
     }
 
     Ok(())
