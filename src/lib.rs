@@ -7,7 +7,6 @@ use std::path::Path;
 use std::process;
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let re = Regex::new(r"[^a-z0-9 ]+").unwrap();
 
     let mut counter_map: HashMap<String, u32> = HashMap::new();
 
@@ -31,14 +30,13 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
             .map(|s| s.to_ascii_lowercase())
             .collect();
         for text in x.iter() {
-            match cleanse_word(text, &re) {
-                Some(word) => calculate_counts(
+            if let Some(word) = cleanse_word(text, &get_regex()) {
+                calculate_counts(
                     &mut counter_map,
                     &mut rolling_vector,
                     word,
                     &mut key_tracker,
-                ),
-                None => {}
+                )
             }
         }
     }
@@ -46,6 +44,10 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         println!("{}:{}", key, counter_map.get(&key).unwrap());
     }
     Ok(())
+}
+
+fn get_regex() -> Regex{
+    Regex::new(r"[^a-z0-9 ]+").unwrap()
 }
 
 fn cleanse_word<'a>(text: &'a str, re: & Regex) -> Option<&'a str> {
@@ -147,5 +149,55 @@ impl Config {
 
 #[cfg(test)]
 mod tests{
+    use super::*;
+
+    #[test]
+    fn test_cleanse_word_with_no_punctuations(){
+        let sample_text = "fox";
+        assert_eq!(cleanse_word(&sample_text,&get_regex()),Some("fox"));
+    }
+
+    #[test]
+    fn test_cleanse_word_with_punctuations_at_end(){
+        let sample_text = "fox's";
+        assert_eq!(cleanse_word(&sample_text,&get_regex()),Some("fox"));
+    }
+
+    #[test]
+    fn test_cleanse_word_with_punctuations_at_start(){
+        let sample_text = "...???...,,,,```fox";
+        assert_eq!(cleanse_word(&sample_text,&get_regex()),Some("fox"));
+    }
+
+    #[test]
+    fn test_cleanse_word_with_punctuations_both_ends(){
+        let sample_text = "...???...,,,,```fox...!!!!!";
+        assert_eq!(cleanse_word(&sample_text,&get_regex()),Some("fox"));
+    }
+
+    #[test]
+    fn test_cleanse_word_with_all_punctuations(){
+        let sample_text = "...???...,,,,```...!!!!!";
+        assert_eq!(cleanse_word(&sample_text,&get_regex()),None);
+    }
+
+    #[test]
+    fn test_cleanse_word_with_emojis(){
+        let sample_text = "...???...,,,,```🥰😍fox...!!!!!";
+        assert_eq!(cleanse_word(&sample_text,&get_regex()),Some("fox"));
+    }
+
+    #[test]
+    fn test_get_key_from_vec(){
+        let vec:Vec<String> = vec!["key1".to_string(),"key2".to_string()];
+        assert_eq!(get_key_from_vec(&vec),String::from("key1 key2"));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_get_key_from_vec_with_bad_vector(){
+        let vec:Vec<String> = vec![];
+        get_key_from_vec(&vec);
+    }
 
 }
