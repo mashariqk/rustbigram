@@ -7,8 +7,6 @@ fn main() {
         println!("Error parsing: {}", err);
         process::exit(9);
     });
-    let testx = "bond\"\"\"??.....";
     println!("Generating bigram histogram for {}", config.get_file_name());
-    println!("{}", testx);
     run(config);
 }

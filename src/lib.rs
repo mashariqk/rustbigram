@@ -1,4 +1,5 @@
 use regex::Regex;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::{self, BufRead, Read};
@@ -7,6 +8,10 @@ use std::process;
 
 pub fn run(config: Config) -> Result<(), Box<Error>> {
     let re = Regex::new(r"[^a-z0-9 ]+").unwrap();
+
+    let mut counter_map: HashMap<String, u32> = HashMap::new();
+
+    let mut rolling_vector: Vec<String> = vec![];
 
     let lines = read_lines(&config.filename).unwrap_or_else(|err| {
         println!("Cannot read the file: {}", err);
@@ -18,9 +23,11 @@ pub fn run(config: Config) -> Result<(), Box<Error>> {
             println!("Could not read line no {}: {}", line_no, err);
             process::exit(9);
         });
+
         println!("Line read is \n {}\n", l);
+
         let x: Vec<String> = l
-            .split_ascii_whitespace()
+            .split_whitespace()
             .map(|s| s.to_ascii_lowercase())
             .collect();
         for (index, text) in x.iter().enumerate() {
@@ -28,7 +35,7 @@ pub fn run(config: Config) -> Result<(), Box<Error>> {
                 "Original word is -->{}<--\nCleansed word is {:?}\n",
                 text,
                 cleanse_word(text, &re)
-            )
+            );
         }
     }
     Ok(())
@@ -70,6 +77,24 @@ fn cleanse_word<'a>(text: &'a str, re: &'a Regex) -> Option<&'a str> {
     }
     //The word is clean already, return as is
     Some(text)
+}
+
+fn calculate_counts(counter_map: &mut HashMap<String, u32>, rolling_vector: &mut Vec<String>) {
+    if rolling_vector.len() == 2 {
+        let key = get_key_from_vec(&rolling_vector);
+        if counter_map.contains_key(&key) {
+            let count = counter_map.get(&key).unwrap();
+            counter_map.insert(key, (count + 1))
+        }
+    }
+}
+
+fn get_key_from_vec(rolling_vector: &Vec<String>) -> String {
+    let mut key = String::new();
+    key.push(rolling_vector.get(0).unwrap().parse().unwrap());
+    key.push_str(" ");
+    key.push(rolling_vector.get(1).unwrap().parse().unwrap());
+    key
 }
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
