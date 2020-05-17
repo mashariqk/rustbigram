@@ -8,5 +8,5 @@ fn main() {
         process::exit(9);
     });
     println!("Generating bigram histogram for {}", config.get_file_name());
-    run(config);
+    run(config).unwrap();
 }

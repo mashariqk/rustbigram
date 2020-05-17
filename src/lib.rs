@@ -2,7 +2,7 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
-use std::io::{self, BufRead, Read};
+use std::io::{self, BufRead};
 use std::path::Path;
 use std::process;
 
@@ -30,7 +30,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
             .split_whitespace()
             .map(|s| s.to_ascii_lowercase())
             .collect();
-        for (index, text) in x.iter().enumerate() {
+        for text in x.iter() {
             match cleanse_word(text, &re) {
                 Some(word) => calculate_counts(
                     &mut counter_map,
@@ -86,6 +86,7 @@ fn cleanse_word<'a>(text: &'a str, re: &'a Regex) -> Option<&'a str> {
     Some(text)
 }
 
+#[allow(mutable_borrow_reservation_conflict)]
 fn calculate_counts(
     counter_map: &mut HashMap<String, u32>,
     rolling_vector: &mut Vec<String>,
@@ -97,10 +98,9 @@ fn calculate_counts(
     }
     if rolling_vector.len() == 2 {
         let key = get_key_from_vec(&rolling_vector);
-
         if counter_map.contains_key(&key) {
             let count = counter_map.get(&key).unwrap();
-            counter_map.insert(key, (count + 1));
+            counter_map.insert(key, count + 1);
         } else {
             key_tracker.push(key.clone());
             counter_map.insert(key, 1);
