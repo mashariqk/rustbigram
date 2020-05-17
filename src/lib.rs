@@ -40,6 +40,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         println!("•\t\"{}\" {}", key, counter_map.get(&key).unwrap());
     }
 
+    println!(
+        "Total no. of bigrams generated: {}",
+        counter_map.keys().len()
+    );
+
     Ok(())
 }
 
