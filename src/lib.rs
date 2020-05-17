@@ -20,16 +20,16 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     });
 
     for (line_no, line) in lines.enumerate() {
-        let l = line.unwrap_or_else(|err| {
+        let line = line.unwrap_or_else(|err| {
             println!("Could not read line no {}: {}", line_no, err);
             process::exit(9);
         });
 
-        let x: Vec<String> = l
+        let line_word_vec: Vec<String> = line
             .split_whitespace()
             .map(|s| s.to_ascii_lowercase())
             .collect();
-        for text in x.iter() {
+        for text in line_word_vec.iter() {
             if let Some(word) = cleanse_word(text, &get_regex()) {
                 calculate_counts(
                     &mut counter_map,
@@ -198,6 +198,31 @@ mod tests{
     fn test_get_key_from_vec_with_bad_vector(){
         let vec:Vec<String> = vec![];
         get_key_from_vec(&vec);
+    }
+
+    #[test]
+    fn test_calculate_counts(){
+        let mut counter_map:HashMap<String, u32> = HashMap::new();
+        let mut rolling_vector:Vec<String> = Vec::new();
+        let mut key_tracker:Vec<String> = Vec::new();
+
+        calculate_counts(&mut counter_map,&mut rolling_vector,"the",&mut key_tracker);
+        calculate_counts(&mut counter_map,&mut rolling_vector,"quick",&mut key_tracker);
+        calculate_counts(&mut counter_map,&mut rolling_vector,"brown",&mut key_tracker);
+        calculate_counts(&mut counter_map,&mut rolling_vector,"fox",&mut key_tracker);
+        calculate_counts(&mut counter_map,&mut rolling_vector,"and",&mut key_tracker);
+        calculate_counts(&mut counter_map,&mut rolling_vector,"the",&mut key_tracker);
+        calculate_counts(&mut counter_map,&mut rolling_vector,"quick",&mut key_tracker);
+        calculate_counts(&mut counter_map,&mut rolling_vector,"blue",&mut key_tracker);
+        calculate_counts(&mut counter_map,&mut rolling_vector,"hare",&mut key_tracker);
+
+        assert_eq!(*counter_map.get("the quick").unwrap(),2 as u32);
+        assert_eq!(*counter_map.get("quick blue").unwrap(),1 as u32);
+        assert_eq!(counter_map.contains_key("hare the"),false);
+
+        assert_eq!(key_tracker.len(),7);
+        assert_eq!(key_tracker.get(0),Some(&"the quick".to_string()));
+        assert_eq!(key_tracker.get(6),Some(&"blue hare".to_string()))
     }
 
 }
