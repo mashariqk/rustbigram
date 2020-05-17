@@ -37,7 +37,7 @@ please use the below command:
 ```shell script
 ./target/release/bigram sampletests/test1.txt
 ```
-This should produce an output similar to below:
+This should produce an output similar to below (all 4 test files will generate the same histogram):
 ```shell script
 Generating bigram histogram for sampletests/test1.txt
 •	"the quick" 2
