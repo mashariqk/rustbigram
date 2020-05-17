@@ -6,12 +6,14 @@ use std::io::{self, BufRead, Read};
 use std::path::Path;
 use std::process;
 
-pub fn run(config: Config) -> Result<(), Box<Error>> {
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let re = Regex::new(r"[^a-z0-9 ]+").unwrap();
 
     let mut counter_map: HashMap<String, u32> = HashMap::new();
 
     let mut rolling_vector: Vec<String> = vec![];
+
+    let mut key_tracker: Vec<String> = vec![];
 
     let lines = read_lines(&config.filename).unwrap_or_else(|err| {
         println!("Cannot read the file: {}", err);
@@ -30,12 +32,19 @@ pub fn run(config: Config) -> Result<(), Box<Error>> {
             .collect();
         for (index, text) in x.iter().enumerate() {
             match cleanse_word(text, &re) {
-                Some(word) => calculate_counts(&mut counter_map, &mut rolling_vector, word),
+                Some(word) => calculate_counts(
+                    &mut counter_map,
+                    &mut rolling_vector,
+                    word,
+                    &mut key_tracker,
+                ),
                 None => {}
             }
         }
     }
-    println!("Final counts are {:?}", counter_map);
+    for key in key_tracker {
+        println!("{}:{}", key, counter_map.get(&key).unwrap());
+    }
     Ok(())
 }
 
@@ -81,29 +90,23 @@ fn calculate_counts(
     counter_map: &mut HashMap<String, u32>,
     rolling_vector: &mut Vec<String>,
     word: &str,
+    key_tracker: &mut Vec<String>,
 ) {
     if rolling_vector.len() < 2 {
         rolling_vector.push(word.to_string());
     }
     if rolling_vector.len() == 2 {
         let key = get_key_from_vec(&rolling_vector);
-        println!("key is {}", &key);
+
         if counter_map.contains_key(&key) {
             let count = counter_map.get(&key).unwrap();
-            println!(
-                "Key found in map, incrementing count of {} to {}",
-                &key,
-                (count + 1)
-            );
             counter_map.insert(key, (count + 1));
         } else {
-            println!("Key NOT found in map, inserting  {}", key);
+            key_tracker.push(key.clone());
             counter_map.insert(key, 1);
         }
-        println!("Rolling vec before reset {:?}", rolling_vector);
         //re-initialize the vector now with the second word
         *rolling_vector = vec![rolling_vector.get(1).unwrap().to_string()];
-        println!("Rolling vec after reset: {:?}", rolling_vector);
     }
 }
 
