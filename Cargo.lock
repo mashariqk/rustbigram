@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "bigram1"
+name = "bigram"
 version = "0.1.0"
 dependencies = [
  "regex",
