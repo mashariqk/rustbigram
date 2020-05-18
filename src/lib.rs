@@ -1,3 +1,8 @@
+/*!
+This crate provides a library for generating a histogram of bigrams contained within a text file.
+The file has to be a valid UTF-8 format. Only ascii words are considered and trailing characters
+after a punctuation are dropped.
+ */
 use regex::Regex;
 use std::collections::HashMap;
 use std::error::Error;
@@ -6,7 +11,21 @@ use std::io::{self, BufRead};
 use std::path::Path;
 use std::process;
 
+
+/// Takes as an input a config object which contains path to a file. Runs through the file to
+/// generate a histogram of bigrams contained in the file and prints them out.
+/// Step 1: Initializes mutable objects counter_map, rolling_vector, key_tracker that will be used
+/// to keep track of the bigrams and their counts
+/// Step 2: Uses the read_lines function to get an iterable of lines of the file instead of loading
+/// all the contents in a String object
+/// Step 3: Iterates over the lines and passes each line to parse_text_into_vec function which
+/// returns a vector of the words contained in the line disregarding any spaces or punctuations
+/// Step 4: Iterates over the vector returned in the previous step and passes each element into the
+/// calculate_counts function along with the objects initialized in step 1 to update the bigram counts
+/// Step 5: Uses the key_tracker vector to iterate over the counter_map in order and writes the
+/// histogram to the output console
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+
     let mut counter_map: HashMap<String, u32> = HashMap::new();
 
     let mut rolling_vector: Vec<String> = vec![];
@@ -19,6 +38,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     });
 
     for (line_no, line) in lines.enumerate() {
+
         let line = line.unwrap_or_else(|err| {
             println!("Could not read line no {}: {}", line_no, err);
             process::exit(9);
@@ -52,6 +72,8 @@ fn get_regex() -> Regex {
     Regex::new(r"[^a-z0-9 ]+").unwrap()
 }
 
+/// Takes as an input a string slice and splits it into a vector by splitting on white space
+/// as well as manipulating the rendered elements through the cleanse_word function.
 fn parse_text_into_vec(line: &str) -> Vec<String> {
     line.split_whitespace()
         .filter(|s| cleanse_word(s.to_ascii_lowercase().as_str(), &get_regex()).is_some())
@@ -63,6 +85,17 @@ fn parse_text_into_vec(line: &str) -> Vec<String> {
         .collect()
 }
 
+/// Takes as input a string slice and a compiled regex pattern and returns an optional containing
+/// either a string slice.
+/// 1. If the regex matches any character of the string at an index > 0 then it strips away the
+/// string from there and returns the leftover wrapped in a Some()
+/// 2. If the regex matches at the start of the string then it strips away at the start until it
+/// finds a non matching character. If there are no matches after that then it returns the slice.
+/// 3. If the regex matches at the start of the string then it strips away at the start until it
+/// finds a non matching character. If there is again a match then it splits the string from that
+/// point and returns the slice.
+/// 4. If everything matches the regex then it returns a None
+/// 5. If nothing matches the regex it returns the original slice in a Some()
 fn cleanse_word<'a>(text: &'a str, re: &Regex) -> Option<&'a str> {
     if re.is_match(text) {
         let start_idx = re.find(text).unwrap().start();
@@ -101,6 +134,14 @@ fn cleanse_word<'a>(text: &'a str, re: &Regex) -> Option<&'a str> {
     Some(text)
 }
 
+/// Takes as an input a mutable reference to a HashMap<String,u32>, a mutable reference to
+/// two Vec<String> and a String slice. One vector (rolling_vector) is used to keep track of
+/// bigram keys and it rolls over with each new bigram. The other vector (key_tracker) keeps track
+/// of the sequence of bigrams as they were found in the text file. Since by default the iteration
+/// of a Map is indeterminate, therefore we will lose track of the sequence of bigrams without
+/// this vector. The string slice is the next word in the stream of words from the file, the
+/// function decides whether to increase the count of an already existing bigram or to add this
+/// word to another previous word to create a new bigram
 #[allow(mutable_borrow_reservation_conflict)]
 fn calculate_counts(
     counter_map: &mut HashMap<String, u32>,
@@ -125,6 +166,8 @@ fn calculate_counts(
     }
 }
 
+/// Takes a vector and generates a string object from its two elements.
+/// This function assumes that the vector does indeed have two elements in it.
 fn get_key_from_vec(rolling_vector: &Vec<String>) -> String {
     let mut key = String::new();
     key.push_str(rolling_vector.get(0).unwrap());
@@ -133,6 +176,9 @@ fn get_key_from_vec(rolling_vector: &Vec<String>) -> String {
     key
 }
 
+/// Gives a Result object containing an iterable over lines of a file.
+/// Much better to use this approach when dealing with a large file than putting all the
+/// contents in a String object
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where
     P: AsRef<Path>,
