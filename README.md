@@ -18,7 +18,7 @@ where it is being built. As long as rust is installed the executable will be
 generated seamlessly on a nix or windows OS. To install rust, please visit
 https://www.rust-lang.org/tools/install
 
-This app was built and tested using rust version 1.43.1
+This app was built and tested using rust version 1.43.1 on a mac running OS version 10.14.5
 
 Installation is straightforward. Download or clone this repo and from within the rustbigram
 directory run the following command
