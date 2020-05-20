@@ -30,6 +30,8 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
     let mut rolling_vector: Vec<String> = vec![];
 
+    let mut key_tracker: Vec<String> = vec![];
+
     let re = get_regex();
 
     let lines = read_lines(&config.filename).unwrap_or_else(|err| {
@@ -50,13 +52,14 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
             calculate_counts(
                 &mut counter_map,
                 &mut rolling_vector,
-                text
+                text,
+                &mut key_tracker
             );
         }
     }
 
-    for (k,v) in counter_map.iter() {
-        println!("•\t\"{}\" {}", k, v);
+    for key in key_tracker {
+        println!("•\t\"{}\" {}", key, counter_map.get(&key).unwrap());
     }
 
     println!(
@@ -145,7 +148,8 @@ fn cleanse_word<'a>(text: &'a str, re: &Regex) -> Option<&'a str> {
 fn calculate_counts(
     counter_map: &mut HashMap<String, u32>,
     rolling_vector: &mut Vec<String>,
-    word: &str
+    word: &str,
+    key_tracker: &mut Vec<String>
 ) {
     if rolling_vector.len() < 2 {
         rolling_vector.push(word.to_string());
@@ -156,6 +160,7 @@ fn calculate_counts(
             let count = counter_map.get(&key).unwrap();
             counter_map.insert(key, count + 1);
         } else {
+            key_tracker.push(key.clone());
             counter_map.insert(key, 1);
         }
         //re-initialize the vector now with the second word
@@ -351,51 +356,61 @@ mod tests {
     fn test_calculate_counts() {
         let mut counter_map: HashMap<String, u32> = HashMap::new();
         let mut rolling_vector: Vec<String> = Vec::new();
+        let mut key_tracker: Vec<String> = Vec::new();
 
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
-            "the"
+            "the",
+            &mut key_tracker
         );
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
-            "quick"
+            "quick",
+            &mut key_tracker
         );
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
-            "brown"
+            "brown",
+            &mut key_tracker
         );
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
-            "fox"
+            "fox",
+            &mut key_tracker
         );
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
-            "and"
+            "and",
+            &mut key_tracker
         );
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
-            "the"
+            "the",
+            &mut key_tracker
         );
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
-            "quick"
+            "quick",
+            &mut key_tracker
         );
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
-            "blue"
+            "blue",
+            &mut key_tracker
         );
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
-            "hare"
+            "hare",
+            &mut key_tracker
         );
 
         assert_eq!(*counter_map.get("the quick").unwrap(), 2 as u32);
