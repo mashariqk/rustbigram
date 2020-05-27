@@ -65,7 +65,7 @@ There are also 4 sample test files provided under the sampletests directory.
 * test4.txt: This file has a single line littered with extra quotations and non-ascii text
 
 ### Performance:
-On a mac running OS version 10.14.5 and 16GB RAM it took just over 7 minutes to parse the 1 GB enwik9
+On a mac running OS version 10.14.5 and 16GB RAM it took under 6 minutes to parse the 1 GB enwik9
 file generating 19,657,893 bigrams. The file can be downloaded from http://mattmahoney.net/dc/textdata.html
 
 There is a potential to improve the code if we are not concerned by the ordering of

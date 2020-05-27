@@ -11,7 +11,6 @@ use std::io::{self, BufRead};
 use std::path::Path;
 use std::process;
 
-
 /// Takes as an input a config object which contains path to a file. Runs through the file to
 /// generate a histogram of bigrams contained in the file and prints them out.
 /// Step 1: Initializes mutable objects counter_map, rolling_vector, key_tracker that will be used
@@ -25,7 +24,6 @@ use std::process;
 /// Step 5: Uses the key_tracker vector to iterate over the counter_map in order and writes the
 /// histogram to the output console
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-
     let mut counter_map: HashMap<String, u32> = HashMap::new();
 
     let mut rolling_vector: Vec<String> = vec![];
@@ -40,20 +38,19 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     });
 
     for (line_no, line) in lines.enumerate() {
-
         let line = line.unwrap_or_else(|err| {
             println!("Could not read line no {}: {}", line_no, err);
             process::exit(9);
         });
 
-        let line_word_vec = parse_text_into_vec(&line,&re);
+        let line_word_vec = parse_text_into_vec(&line, &re);
 
         for text in line_word_vec.iter() {
             calculate_counts(
                 &mut counter_map,
                 &mut rolling_vector,
                 text,
-                &mut key_tracker
+                &mut key_tracker,
             );
         }
     }
@@ -76,15 +73,14 @@ fn get_regex() -> Regex {
 
 /// Takes as an input a string slice and splits it into a vector by splitting on white space
 /// as well as manipulating the rendered elements through the cleanse_word function.
-fn parse_text_into_vec(line: &str, re:&Regex) -> Vec<String> {
-    line.split_whitespace()
-        .filter(|s| cleanse_word(s.to_ascii_lowercase().as_str(), re).is_some())
-        .map(|s| {
-            cleanse_word(s.to_ascii_lowercase().as_str(), re)
-                .unwrap()
-                .to_string()
-        })
-        .collect()
+fn parse_text_into_vec(line: &str, re: &Regex) -> Vec<String> {
+    let mut r = Vec::new();
+    for x in line.split_whitespace() {
+        cleanse_word(x.to_ascii_lowercase().as_str(), re).map(|v| {
+            r.push(v.to_string());
+        });
+    }
+    r
 }
 
 /// Takes as input a string slice and a compiled regex pattern and returns an optional containing
@@ -149,7 +145,7 @@ fn calculate_counts(
     counter_map: &mut HashMap<String, u32>,
     rolling_vector: &mut Vec<String>,
     word: &str,
-    key_tracker: &mut Vec<String>
+    key_tracker: &mut Vec<String>,
 ) {
     if rolling_vector.len() < 2 {
         rolling_vector.push(word.to_string());
@@ -215,7 +211,7 @@ mod tests {
     #[test]
     fn test_parse_text_into_vec_with_no_punctuations_and_all_uppercase() {
         let line = "THE QUICK BROWN FOX AND THE QUICK BROWN HARE";
-        let v = parse_text_into_vec(line,&get_regex());
+        let v = parse_text_into_vec(line, &get_regex());
         assert!(v.contains(&"quick".to_string()));
         assert!(!v.contains(&"THE".to_string()));
         assert_eq!(v.len(), 9);
@@ -224,7 +220,7 @@ mod tests {
     #[test]
     fn test_parse_text_into_vec_with_no_punctuations_and_mixedcase() {
         let line = "THE quICK brOWn FOX AND ThE QuiCK BROWN haRE";
-        let v = parse_text_into_vec(line,&get_regex());
+        let v = parse_text_into_vec(line, &get_regex());
         assert!(v.contains(&"quick".to_string()));
         assert!(!v.contains(&"THE".to_string()));
         assert_eq!(v.len(), 9);
@@ -233,7 +229,7 @@ mod tests {
     #[test]
     fn test_parse_text_into_vec_with_no_punctuations_and_mixedcase_and_extra_spaces() {
         let line = "THE quICK brOWn             FOX AND      ThE             QuiCK BROWN haRE";
-        let v = parse_text_into_vec(line,&get_regex());
+        let v = parse_text_into_vec(line, &get_regex());
         assert!(v.contains(&"quick".to_string()));
         assert!(!v.contains(&"THE".to_string()));
         assert_eq!(v.get(8), Some(&"hare".to_string()));
@@ -243,7 +239,7 @@ mod tests {
     #[test]
     fn test_parse_text_into_vec_with_punctuations_at_end_and_mixedcase_and_extra_spaces() {
         let line = "THE quICK's brOWn'ss             FOX...??? AND      ThE             QuiCK BROWN haRE'ssssss";
-        let v = parse_text_into_vec(line,&get_regex());
+        let v = parse_text_into_vec(line, &get_regex());
         assert!(v.contains(&"quick".to_string()));
         assert!(!v.contains(&"THE".to_string()));
         assert_eq!(v.get(8), Some(&"hare".to_string()));
@@ -254,7 +250,7 @@ mod tests {
     fn test_parse_text_into_vec_with_punctuations_at_start_and_mixedcase_and_extra_spaces() {
         let line =
             "THE .......quICK brOWn         FOX AND      ThE             QuiCK BROWN \"\"\"haRE";
-        let v = parse_text_into_vec(line,&get_regex());
+        let v = parse_text_into_vec(line, &get_regex());
         assert!(v.contains(&"quick".to_string()));
         assert!(!v.contains(&"THE".to_string()));
         assert_eq!(v.get(8), Some(&"hare".to_string()));
@@ -266,7 +262,7 @@ mod tests {
     fn test_parse_text_into_vec_with_enclosing_punctuations_and_mixedcase_and_extra_spaces() {
         let line =
             "THE .......quICK!!!!! .....brOWn'ssss         FOX AND      ThE             QuiCK BROWN \"\"\"haRE\"\".....??????";
-        let v = parse_text_into_vec(line,&get_regex());
+        let v = parse_text_into_vec(line, &get_regex());
         assert!(v.contains(&"quick".to_string()));
         assert!(!v.contains(&"THE".to_string()));
         assert_eq!(v.get(8), Some(&"hare".to_string()));
@@ -280,7 +276,7 @@ mod tests {
     ) {
         let line =
             "THE ૱﷼₢quICK₱€₴ brOWn🤯🤯🤯         FOX AND      ThE             QuiCK BROWN \"\"\"🥰🥰🥰haRE\"\"..😍😍😍...??????";
-        let v = parse_text_into_vec(line,&get_regex());
+        let v = parse_text_into_vec(line, &get_regex());
         assert!(v.contains(&"quick".to_string()));
         assert!(!v.contains(&"THE".to_string()));
         assert_eq!(v.get(8), Some(&"hare".to_string()));
@@ -294,7 +290,7 @@ mod tests {
     {
         let line =
             "THE ૱﷼₢quICK₱€₴ brOWn🤯🤯🤯         FOX AND    ???...;;;;   ThE    ₱€₴૱﷼₢;;../////         QuiCK BROWN \"\"\"🥰🥰🥰haRE\"\"..😍😍😍...??????";
-        let v = parse_text_into_vec(line,&get_regex());
+        let v = parse_text_into_vec(line, &get_regex());
         assert!(v.contains(&"quick".to_string()));
         assert!(!v.contains(&"THE".to_string()));
         assert_eq!(v.get(8), Some(&"hare".to_string()));
@@ -362,55 +358,55 @@ mod tests {
             &mut counter_map,
             &mut rolling_vector,
             "the",
-            &mut key_tracker
+            &mut key_tracker,
         );
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
             "quick",
-            &mut key_tracker
+            &mut key_tracker,
         );
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
             "brown",
-            &mut key_tracker
+            &mut key_tracker,
         );
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
             "fox",
-            &mut key_tracker
+            &mut key_tracker,
         );
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
             "and",
-            &mut key_tracker
+            &mut key_tracker,
         );
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
             "the",
-            &mut key_tracker
+            &mut key_tracker,
         );
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
             "quick",
-            &mut key_tracker
+            &mut key_tracker,
         );
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
             "blue",
-            &mut key_tracker
+            &mut key_tracker,
         );
         calculate_counts(
             &mut counter_map,
             &mut rolling_vector,
             "hare",
-            &mut key_tracker
+            &mut key_tracker,
         );
 
         assert_eq!(*counter_map.get("the quick").unwrap(), 2 as u32);
