@@ -68,7 +68,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 }
 
 fn get_regex() -> Regex {
-    Regex::new(r"[^a-z0-9 ]+").unwrap()
+    Regex::new(r"[^a-z0-9]+").unwrap()
 }
 
 /// Takes as an input a string slice and splits it into a vector by splitting on white space
