@@ -75,11 +75,11 @@ fn get_regex() -> Regex {
 /// as well as manipulating the rendered elements through the cleanse_word function.
 fn parse_text_into_vec(line: &str, re: &Regex) -> Vec<String> {
     let mut r = Vec::new();
-    for x in line.split_whitespace() {
-        cleanse_word(x.to_ascii_lowercase().as_str(), re).map(|v| {
-            r.push(v.to_string());
+    line.split_whitespace().for_each(|word| {
+        cleanse_word(word.to_ascii_lowercase().as_str(), re).map(|value| {
+            r.push(value.to_string());
         });
-    }
+    });
     r
 }
 
