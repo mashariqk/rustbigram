@@ -73,6 +73,22 @@ the bigram keys. Since a hashmap by default does not iterate over keys in order
 therefore we are using a separate vector to keep track of when a key was added. This
 vector can be removed if the ordering is not important, potentially increasing the performance.
 
+Surprisingly, in my tests, changing the value of the hashmap by getting a mutable pointer is *SLOWER* 
+than getting the count, updating it and then putting it back in the map.
+```rust
+        if counter_map.contains_key(&key) {
+            let count = counter_map.get_mut(&key).unwrap();
+            *count = *count + 1;
+        }
+```
+is slower than
+```rust
+        if counter_map.contains_key(&key) {
+            let count = counter_map.get(&key).unwrap();
+            counter_map.insert(key, count + 1);
+        }
+```
+
 ### Limitations:
 * The app only accepts valid UTF-8 files. Although both unix LF and windows CRLF
 line breakers are supported
